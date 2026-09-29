@@ -496,9 +496,12 @@
     try { localStorage.setItem(key, '1'); } catch (e) {}
   }
 
-  document.getElementById('popup-close-btn').addEventListener('click', () => {
-    document.getElementById('popup-overlay').classList.add('hidden');
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'popup-close-btn') {
+      document.getElementById('popup-overlay').classList.add('hidden');
+    }
   });
+
 
   function renderList() {
     const selKey = monthSelect.value;
