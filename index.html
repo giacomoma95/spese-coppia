@@ -298,7 +298,7 @@
       <div id="expense-list" style="margin-top:10px"></div>
     </div>
 
-    <div style="text-align:center;font-size:10px;color:var(--muted)">v7</div>
+    <div style="text-align:center;font-size:10px;color:var(--muted)">v8</div>
   </div>
 
   <!-- GRAFICI VIEW -->
@@ -612,24 +612,49 @@
     btn.disabled = false;
   });
 
-  const CATS = [
-    ['🛒','Spesa',/spesa|super|conad|esselunga|lidl|coop|carrefour|mercato/,'#10b981'],
-    ['🍽️','Ristoranti',/cena|pranzo|ristorante|pizza|sushi|colazione|aperitivo|gelato/,'#f59e0b'],
-    ['⛽','Benzina',/benzina|carburante|diesel|gpl/,'#6366f1'],
-    ['💡','Bollette',/bolletta|luce|gas|energia|internet|wifi/,'#06b6d4'],
-    ['🏠','Casa',/affitto|casa|condominio/,'#8b5cf6'],
-    ['🎬','Svago',/cinema|film|netflix|concerto|teatro/,'#ec4899'],
-    ['✈️','Viaggi',/viaggio|volo|treno|hotel|vacanza|aereo/,'#3b82f6'],
-    ['💊','Salute',/farmacia|medic/,'#ef4444'],
-    ['🐾','Animali',/veterinari|gatto|cane/,'#84cc16']
-  ];
-  const CAT_OTHER = ['🧾','Altro',null,'#94a3b8'];
+  // Categorie (usate dalla torta): [emoji, nome, -, colore]
+  const CAT = {
+    spesa:['🛒','Spesa',null,'#10b981'], rist:['🍽️','Ristoranti',null,'#f59e0b'], auto:['🚗','Auto e trasporti',null,'#6366f1'],
+    bollette:['💡','Bollette',null,'#06b6d4'], casa:['🏠','Casa',null,'#8b5cf6'], svago:['🎬','Svago',null,'#ec4899'],
+    viaggi:['✈️','Viaggi',null,'#3b82f6'], salute:['💊','Salute',null,'#ef4444'], animali:['🐾','Animali',null,'#84cc16'],
+    shop:['🛍️','Shopping',null,'#f97316'], benessere:['💇','Benessere',null,'#14b8a6'], altro:['🧾','Altro',null,'#94a3b8']
+  };
+  // Parole chiave -> emoji specifica + categoria. Vince la prima che corrisponde; il plurale funziona (pizz -> pizza/pizze).
+  const ITEMS = [
+    ['🍕','pizz','rist'],['🍝','pasta|spaghett|carbonara|lasagn|ravioli','rist'],['🍔','hamburger|burger|mcdonald|panin|kebab','rist'],
+    ['🍣','sushi|poke','rist'],['🥗','insalat','rist'],['🍦','gelat','rist'],['🍰','dolc|torta|tiramis|pasticcer','rist'],
+    ['🥐','cornett|brioche|colazion','rist'],['☕','caff|cappuccin|bar\\b','rist'],['🍺','birr|pub\\b','rist'],['🍷','vino|vini|enotec','rist'],
+    ['🍹','aperitiv|spritz|cocktail|drink','rist'],['🍽️','cena|cene|pranzo|ristorant|trattori|osteri','rist'],
+    ['🥩','maccelleri|carne|bistecc','spesa'],['🐟','pesce|pescheri','spesa'],['🥖','pane|panetter|fornaio','spesa'],
+    ['🍎','frutta|verdura|fruttiv|ortolan','spesa'],['🛒','spesa|super|conad|esselunga|lidl|coop|carrefour|mercato|eurospin|aldi|penny|iper\\b','spesa'],
+    ['⛽','benzina|carburant|diesel|gpl|gasolio|rifornimento','auto'],['🛣️','autostrada|pedaggio|telepass','auto'],
+    ['🚗','auto\\b|macchina|assicurazion|bollo|meccanic|gommista|tagliando|parcheggio','auto'],
+    ['🚆','treno|trenitalia|italo\\b','auto'],['🚌','bus\\b|autobus|metro|atm\\b','auto'],['🚕','taxi|uber','auto'],
+    ['✈️','volo|voli|aere|ryanair','viaggi'],['🏨','hotel|b&b|airbnb|alloggio','viaggi'],['🏖️','vacanz|mare\\b|spiaggia','viaggi'],['🧳','viaggio|viaggi','viaggi'],
+    ['🔥','gas\\b|riscaldament','bollette'],['💡','luce|elettric|energia|bolletta','bollette'],['💧','acqua','bollette'],
+    ['🌐','internet|wifi|fibra','bollette'],['📱','telefon|cellulare|ricaricabile|sim\\b','bollette'],
+    ['🏠','affitto|casa|condomin|mutuo','casa'],['🛋️','mobili|ikea|arredo|divano','casa'],['🔧','idraulic|riparazion|manutenzion|elettricista','casa'],
+    ['🧴','detersiv|pulizi|shampoo|bagnoschiuma|sapone','casa'],['🧺','lavanderia|lavatrice','casa'],
+    ['🎬','cinema|film|netflix|prime video|disney','svago'],['🎵','spotify|musica|concert','svago'],['🎭','teatro','svago'],
+    ['🎮','videogioc|playstation|steam\\b|nintendo|gioco|giochi','svago'],['🎟️','biglietto|biglietti|evento','svago'],
+    ['📚','libro|libri|libreria','shop'],['👕','vestit|maglia|maglion|pantalon|scarp|abbigliament|zara|h&m','shop'],
+    ['🎁','regalo|regali|compleanno','shop'],['🌸','fiori|mazzo','shop'],['🛍️','shopping|amazon|acquist','shop'],
+    ['💇','parrucchier|barbier|taglio','benessere'],['💅','estetist|unghie|manicure','benessere'],['🏋️','palestra|piscina|sport|yoga','benessere'],
+    ['💊','farmaci|medic','salute'],['🩺','dottor|visita|dentist|oculist|analisi','salute'],
+    ['🐾','veterinari|gatto|gatti|cane\\b|cani\\b|crocchette|lettiera','animali']
+  ].map(([e, r, c]) => [e, new RegExp('(^|[^a-zà-ù0-9])(' + r + ')', 'i'), c]);
+  const LEAD_EMOJI = /^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic}|\p{Emoji_Modifier})*)\s*/u;
   function categoryOf(t) {
-    t = t.toLowerCase();
-    for (const c of CATS) if (c[2].test(t)) return c;
-    return CAT_OTHER;
+    for (const it of ITEMS) if (it[1].test(t)) return CAT[it[2]];
+    return CAT.altro;
   }
-  function emojiFor(t) { return categoryOf(t)[0]; }
+  // Emoji: se la descrizione inizia già con un'emoji usa quella, poi la parola chiave più specifica, poi la categoria
+  function emojiFor(t) {
+    const m = t.match(LEAD_EMOJI);
+    if (m) return m[1];
+    for (const it of ITEMS) if (it[1].test(t)) return it[0];
+    return CAT.altro[0];
+  }
 
   // --- Suggerimenti mentre scrivi in "Cosa" ---
   const BASE_SUGG = ['Spesa','Cena','Pranzo','Colazione','Aperitivo','Benzina','Bolletta luce','Bolletta gas','Affitto','Cinema','Farmacia','Viaggio','Pizza','Gelato'];
@@ -655,7 +680,7 @@
   }
   const suggBox = document.getElementById('sugg');
   function renderSugg() {
-    suggBox.innerHTML = suggestions(descInput.value).map(d => `<button type="button" data-v="${escapeHtml(d)}">${escapeHtml(d)}</button>`).join('');
+    suggBox.innerHTML = suggestions(descInput.value).map(d => `<button type="button" data-v="${escapeHtml(d)}">${emojiFor(d)} ${escapeHtml(d)}</button>`).join('');
   }
   descInput.addEventListener('input', renderSugg);
   suggBox.addEventListener('pointerdown', e => e.preventDefault());
@@ -778,7 +803,7 @@
       const st = isSettle(e);
       const c = st ? 's' : (e.payer === 'G' ? 'g' : 'm');
       const payerName = e.payer === 'G' ? 'Giacomo' : 'Maria Cristina';
-      const desc = st ? e.description.replace(SALDO_TAG, 'Saldo') : e.description;
+      const desc = st ? e.description.replace(SALDO_TAG, 'Saldo') : (e.description.replace(LEAD_EMOJI, '').trim() || e.description);
       const meta = st ? `${dateFmt} · pagamento registrato` : `${dateFmt} · ${payerName} ha pagato · ${e.giacomoPct}/${100-e.giacomoPct}`;
       return `
         <div class="expense-item">
